@@ -1,15 +1,27 @@
 import threading
 import time
 
-def func():
-    print('ran')
-    time.sleep(1)
-    print('done')
-    
-# x = threading.Thread(target=func, args=(4, ))
-print(threading.active_count()) # 1
-x = threading.Thread(target=func)
-print(threading.active_count()) # 1
-x.start()
+ls = []
 
-print(threading.active_count()) # 2
+def count(n):
+    for i in range(1, n+1):
+        ls.append(i)
+        time.sleep(0.5)
+        
+def count2(n):
+    for i in range(1, n+1):
+        ls.append(i)
+        time.sleep(0.5)
+        
+x = threading.Thread(target=count, args=(5, ))
+y = threading.Thread(target=count2, args=(5, ))
+
+x.start()
+y.start()
+
+x.join()
+x.join()
+
+print(ls)
+    
+print("Done!")

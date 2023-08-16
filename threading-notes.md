@@ -265,3 +265,202 @@ Good to remember: Before importing threading or making new threads, our program 
     - Active thread
     - x
         - look at number of active threads with threading.active_count()
+
+Let's look at a little more complex of an example:
+
+```py
+import threading
+import time
+
+def func():
+    print('ran')
+    time.sleep(1)
+    print('done')
+    time.sleep(0.85)
+    print('now done')
+    
+x = threading.Thread(target=func)
+x.start()
+print(threading.active_count()) # 2
+time.sleep(0.90)
+print("finally")
+```
+
+Run the code with Ctrl-Shift-N.
+
+What happens here/order of operations:
+- start on the main thread, the python program
+    - A new thread is created
+    - Once we get down to x.start(), we switch to that thread
+- thread x, we begin running the function `func`
+    - print 'ran'
+    - Now that we have to sleep for 1 second, we switch back to the main thread
+- main thread, we continue down the program
+    - print '2' (for the active thread count)
+    - Now that we have to sleep for 0.90 seconds, we switch back to the x thread
+- thread x, we continue down the function
+    - print 'done'
+    - Now that we have to sleep for 0.85 seconds, we switch back to the main thread
+- main thread, we continue on down
+    - print 'finally'
+    - This thread is done, so we switch back to the x thread
+- thread x, we continue to finish the function
+    - print 'now done'
+
+
+Let's make an example of more than 1 thread:
+
+```py
+import threading
+import time
+
+def count(n):
+    for i in range(1, n+1):
+        print(i)
+        time.sleep(0.01)
+        
+for _ in range(2):
+    x = threading.Thread(target=count, args=(10, ))
+    x.start()
+    
+print("Done!")
+```
+
+What happens here/order of operations:
+- 1 is printed by thread x1
+- 1 is printed by thread x2
+- Done is printed
+    - Both threads have to pause and sleep, so in the meantime, we go back to the main thread and finish running the program
+- 2/2, 3/3, 4/4, etc. by threads x1/x2 until we hit 10
+
+
+Watch what happens if you pass in an argument for sleep:
+
+```py
+import threading
+import time
+
+def count(n):
+    for i in range(1, n+1):
+        print(i)
+        time.sleep(0.01)
+        
+def count2(n):
+    for i in range(1, n+1):
+        print(i)
+        time.sleep(0.02)
+        
+x = threading.Thread(target=count, args=(10, ))
+x.start()
+
+y = threading.Thread(target=count2, args=(10, ))
+y.start()
+    
+print("Done!")
+```
+
+What happens here:
+- Count2 takes longer to sleep, so sometimes Count gets to print twice
+
+
+Now, let's look at using a global variable with different threads:
+
+```py
+import threading
+import time
+
+ls = []
+
+def count(n):
+    for i in range(1, n+1):
+        ls.append(i)
+        time.sleep(0.5)
+        
+def count2(n):
+    for i in range(1, n+1):
+        ls.append(i)
+        time.sleep(0.5)
+        
+x = threading.Thread(target=count, args=(5, ))
+y = threading.Thread(target=count2, args=(5, ))
+
+x.start()
+y.start()
+
+print(ls)
+    
+print("Done!")
+```
+
+Notes:
+- Threads are NOT safe when it comes to accessing global memory (Can fix that with locks ie. threading.Lock())
+
+What happens here:
+- We get [1, 1] ie. not the full list...
+    - This is because while count/count2 are sleeping, the program continues onto the main thread to print ls.
+
+We want the ls to get filled all the way up, how do we get our code to do that?
+
+Using "Thread Synchronization" with the .join() method!
+
+What does thread.join() do?
+- "Wait for this thread to stop running"
+- "Do not move past this line of code until the thread is done"
+    - In most examples: The main Python program's thread is halted
+        - Allows you to have multiple threads run AND finish before moving on
+
+```py
+import threading
+import time
+
+ls = []
+
+def count(n):
+    for i in range(1, n+1):
+        ls.append(i)
+        time.sleep(0.5)
+        
+def count2(n):
+    for i in range(1, n+1):
+        ls.append(i)
+        time.sleep(0.5)
+        
+x = threading.Thread(target=count, args=(5, ))
+y = threading.Thread(target=count2, args=(5, ))
+
+x.start()
+y.start()
+
+x.join()
+x.join()
+
+print(ls)
+    
+print("Done!")
+```
+
+What happens here:
+- Main thread starts
+- X starts
+    - Adds 1 to ls
+    - Gets halted by time.sleep
+- Y starts
+    - Adds 1 to ls
+    - Gets halted by time.sleep
+- We alternate between threads x/y until they complete
+- Main thread picks up and ls is printed
+- Done!
+
+#### Git
+
+```sh
+cd threading
+
+git status
+git add .
+git commit -m "Completed Video #2 - Implementing Threading in Python 3 (Examples)"
+git push -u origin main
+git status
+git log --oneline
+q
+```
